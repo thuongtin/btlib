@@ -184,14 +184,14 @@ func (this *Btlib) Macd(candles []bittrex.Candle) ([]MACD, error) {
 	}
 	ema12, _ := this.Ema(candles, 12)
 	ema26, _ := this.Ema(candles, 26)
-
 	ema12 = ema12[14:]
+
 	macd := []float64{}
 
 	for i, _ := range ema26 {
 		v := ema12[i] - ema26[i]
+		//fmt.Println(v)
 		macd = append(macd, v)
-		fmt.Println(v)
 	}
 
 	signals := this.emaOfMacd(macd)
