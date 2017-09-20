@@ -4,7 +4,6 @@ import (
 	"github.com/toorop/go-bittrex"
 	"math"
 	"github.com/murlokswarm/errors"
-	"fmt"
 )
 
 type Btlib struct {
@@ -205,4 +204,83 @@ func (this *Btlib) Macd(candles []bittrex.Candle) ([]MACD, error) {
 	}
 
 	return result, nil
+}
+
+
+func (this *Btlib) BB(candles []bittrex.Candle, length int, stdDev float64) []BBPoint {
+	len := len(candles)
+	if len < length {
+		return nil
+	}
+	result := []BBPoint{}
+	for i := length - 1; i < len; i++ {
+		point := calcBBPoint(candles[i-(length-1):i+1], length, stdDev)
+		result = append(result, point)
+	}
+	return result
+}
+
+func calcBBPoint(candles []bittrex.Candle, length int, stdDev float64) BBPoint {
+	size := float64(len(candles))
+	if size != float64(length) {
+		return BBPoint{}
+	}
+	total := 0.0
+	for _, candle := range candles {
+		total += candle.Close
+	}
+	middle := total / size
+	total = 0.0
+	for _, candle := range candles {
+		total += math.Pow(candle.Close-middle, 2)
+	}
+	sd := math.Sqrt(total / size)
+	upper := middle + sd*stdDev
+	lower := middle - sd*stdDev
+	bandwidth := upper - lower
+	return BBPoint{middle, upper, lower, bandwidth}
+}
+
+func (this *Btlib) RSI(candles []bittrex.Candle, length int) []float64 {
+	len := len(candles)
+	if len < length {
+		return nil
+	}
+	result := []float64{}
+	sumGain := 0.0
+	sumLoss := 0.0
+	rs := 0.0
+	for i := 1; i < len; i++ {
+		preClose := candles[i-1].Close
+		close := candles[i].Close
+		change := close - preClose
+		gain := 0.0
+		loss := 0.0
+		if change >= 0 {
+			gain = change
+		} else {
+			loss = change * (-1.0)
+		}
+
+		if i < length - 1 {
+			sumGain += gain
+			sumLoss += loss
+		} else {
+			if i == length - 1 {
+				sumGain = (sumGain + gain) / 14.0
+				sumLoss = (sumLoss + loss) / 14.0
+			} else {
+				sumGain = (sumGain*13 + gain) / 14.0
+				sumLoss = (sumLoss*13 + loss) / 14.0
+			}
+
+			if sumLoss == 0 {
+				result = append(result, 100)
+			} else {
+				rs = sumGain / sumLoss
+				result = append(result, 100 - (100 / (rs + 1)))
+			}
+		}
+	}
+	return result
 }
