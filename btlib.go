@@ -133,7 +133,7 @@ func (this *Btlib) Ema(candles []bittrex.Candle, length int) ([]float64, error) 
 			a += b.Close
 			result = append(result, a/l)
 		} else {
-			r := (b.Close*(2/(l+1))) + result[i-length]*(1-(2/(l+1)))
+			r := (b.Close*(2/(l+1))) + result[i-length]*(1-2/(l+1))
 			result = append(result, r)
 		}
 	}
@@ -151,7 +151,7 @@ func (this *Btlib) emaOfMacd(macd []float64) []float64 {
 			a += b
 			result = append(result, a/9)
 		} else {
-			r := (b*(2/10)) + result[i-9]*(1-(2/10))
+			r := (b*(2/10)) + result[i-9]*(1-2/10)
 			result = append(result, r)
 		}
 	}
