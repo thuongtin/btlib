@@ -117,23 +117,6 @@ func (this *Btlib) Vol(candles []bittrex.Candle, maLength int) ([]float64, error
 	return result, nil
 }
 
-//func (this *Btlib) Ema(candles []bittrex.Candle, length int) ([]float64, error) {
-//	var smoothing float64
-//	result := []float64{}
-//	l := float64(length)
-//	smoothing = 2/(l+1)
-//	cLen := len(candles)
-//	if cLen <= length {
-//		return nil, errors.New("Out of range")
-//	}
-//
-//	sma,_ := this.MA(candles, length)
-//	result = append(result, sma[0])
-//	for i:=1; i<=len(sma); i++ {
-//		result = append(result, smoothing * (candles[i+length-2].Close - result[i-1]) + result[i-1])
-//	}
-//	return result, nil
-//}
 
 func (this *Btlib) Ema(candles []bittrex.Candle, length int) ([]float64, error) {
 	result := []float64{}
@@ -281,6 +264,150 @@ func (this *Btlib) RSI(candles []bittrex.Candle, length int) []float64 {
 				result = append(result, 100 - (100 / (rs + 1)))
 			}
 		}
+	}
+	return result
+}
+
+func (this *Btlib) ADX(cd []bittrex.Candle, length int) []ADXPoint {
+	size := len(cd)
+	if size < length {
+		return nil
+	}
+	result := []ADXPoint{}
+	trSum := 0.0
+	dmPlusSum := 0.0
+	dmMinusSum := 0.0
+	bv := []float64{}
+
+	for i := 1; i < size; i++ {
+		high := cd[i].High
+		preHigh := cd[i-1].High
+		low := cd[i].Low
+		preLow := cd[i-1].Low
+		preClose := cd[i-1].Close
+
+		tr := getMax(high-low, math.Abs(high-preClose), math.Abs(low-preClose))
+		dmPlus := 0.0
+		if high-preHigh > preLow-low {
+			dmPlus = math.Max(high-preHigh, 0.0)
+		}
+		dmMinus := 0.0
+		if preLow-low > high-preHigh {
+			dmMinus = math.Max(preLow-low, 0.0)
+		}
+
+		if i < length-1 {
+			trSum += tr
+			dmPlusSum += dmPlus
+			dmMinusSum += dmMinus
+		} else {
+			if i == length-1 {
+				trSum += tr
+				dmPlusSum += dmPlus
+				dmMinusSum += dmMinus
+			} else {
+				trSum = trSum - (trSum / float64(length)) + tr
+				dmPlusSum = dmPlusSum - (dmPlusSum / float64(length)) + dmPlus
+				dmMinusSum = dmMinusSum - (dmMinusSum / float64(length)) + dmMinus
+			}
+			diPlus := 100 * (dmPlusSum / trSum)
+			diMinus := 100 * (dmMinusSum / trSum)
+			diDiff := math.Abs(diPlus - diMinus)
+			diSum := diPlus + diMinus
+			dx := 100 * (diDiff / diSum)
+			bv = append(bv, dx)
+			result = append(result, ADXPoint{0, diPlus, diMinus})
+
+			/*if i < length*2-1 {
+				dxSum += dx
+			} else if i == length*2-1 {
+				adx = (dxSum + dx) / float64(length)
+				result = append(result, ADXPoint{adx, diPlus, diMinus})
+			} else {
+				adx = (adx*float64(length-1) + dx) / float64(length)
+				result = append(result, ADXPoint{adx, diPlus, diMinus})
+			}*/
+		}
+	}
+	adx := getSMAOfRSI(length, bv)
+	for i := 0; i < len(adx); i++ {
+		result[len(result)-1-i].ADX = adx[len(adx)-1-i]
+	}
+	return result
+}
+
+func getMax(elems ...float64) float64 {
+	const MinFloat = float64(math.MinInt64)
+	max := MinFloat
+	for _, e := range elems {
+		if max < e {
+			max = e
+		}
+	}
+	return max
+}
+
+
+
+func getSMAOfRSI(length int, rsiArray []float64) []float64 {
+	size := len(rsiArray)
+	if size < length {
+		return nil
+	}
+	result := []float64{}
+	for i := length - 1; i < size; i++ {
+		sum := 0.0
+		for j := i - (length - 1); j <= i; j++ {
+			sum += rsiArray[j]
+		}
+		result = append(result, sum/float64(length))
+	}
+	return result
+}
+
+func getBBAroundSMAArray(rsiArray []float64, bandLength int, stdDev float64) []TDIPoint {
+	size := len(rsiArray)
+	if size < bandLength {
+		return nil
+	}
+	result := []TDIPoint{}
+	for i := bandLength - 1; i < size; i++ {
+		point := getBBAroundSMAPoint(rsiArray[i-(bandLength-1):i+1], bandLength, stdDev)
+		result = append(result, point)
+	}
+	return result
+}
+
+func getBBAroundSMAPoint(rsiArray []float64, bandLength int, stdDev float64) TDIPoint {
+	size := float64(len(rsiArray))
+	if size != float64(bandLength) {
+		return TDIPoint{}
+	}
+	total := 0.0
+	for _, rsiPoint := range rsiArray {
+		total += rsiPoint
+	}
+	average := total / size
+	total = 0.0
+	for _, rsiPoint := range rsiArray {
+		total += math.Pow(rsiPoint-average, 2)
+	}
+	sd := math.Sqrt(total / size)
+	upper := average + sd*stdDev
+	lower := average - sd*stdDev
+	middle:= (upper+lower)/2
+	return TDIPoint{middle, upper, lower, 0,0}
+}
+
+func (this *Btlib) TDI(candles []bittrex.Candle, rsiPeriod, bandLength, fast, slow int) []TDIPoint {
+	rsi := this.RSI(candles, rsiPeriod)
+	result := getBBAroundSMAArray(rsi, bandLength, 1.6185)
+	fastArray := getSMAOfRSI(fast, rsi)
+	slowArray := getSMAOfRSI(slow, rsi)
+
+	for i := 0; i < len(result); i++{
+		result[len(result) - 1 - i].FastMA = fastArray[len(fastArray) - 1 - i]
+		result[len(result) - 1 - i].SlowMA = slowArray[len(slowArray) - 1 - i]
 	}
 	return result
 }

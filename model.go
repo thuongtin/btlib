@@ -10,3 +10,17 @@ type BBPoint struct {
 	Lower     float64
 	BandWidth float64
 }
+
+type ADXPoint struct {
+	ADX     float64
+	DIPlus  float64
+	DIMinus float64
+}
+
+type TDIPoint struct {
+	Middle float64
+	Upper  float64
+	Lower  float64
+	FastMA   float64
+	SlowMA float64
+}
