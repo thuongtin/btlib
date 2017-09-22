@@ -9,6 +9,8 @@ import (
 //
 //
 func main() {
+
+
 	pair := "BTC-NEO"
 	bt := btlib.Btlib{}.NewClient()
 	candles, err := bt.GetCandles(pair, "hour")
@@ -16,9 +18,9 @@ func main() {
 			fmt.Printf("%s - Get Candle\n", pair)
 		} else {
 			haCancles, _ := bt.HeikinAshi(candles)
-			macds, _ := bt.Macd(haCancles)
-			for _, macd := range macds {
-				fmt.Printf("%.8f\n", macd.Histogram)
+			ichi := bt.Ichimoku(haCancles)
+			for _, macd := range ichi {
+				fmt.Printf("%.8f\n", macd.SenkouA)
 			}
 		}
 }

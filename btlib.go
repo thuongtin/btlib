@@ -411,3 +411,49 @@ func (this *Btlib) TDI(candles []bittrex.Candle, rsiPeriod, bandLength, fast, sl
 	}
 	return result
 }
+func (this *Btlib) Ichimoku(candles []bittrex.Candle) []IchimokuCloud {
+	result := []IchimokuCloud{}
+	lowestLow := candles[0].Low
+	highestHigh := candles[0].High
+
+	for i:=0; i<len(candles); i++ {
+		tenkan := 0.0
+		kijun := 0.0
+		chikou := 0.0
+		senkouA := 0.0
+		if i < len(candles) - 26 {
+			chikou = candles[i+26].Close
+		}
+		if i >= 8 {
+			highestHigh = findMax(candles[i-8:i])
+			lowestLow = findMin(candles[i-8:i])
+			tenkan = (highestHigh + lowestLow) / 2
+			if i >= 25 {
+				highestHigh = findMax(candles[i-25:i])
+				lowestLow = findMin(candles[i-25:i])
+				kijun = (highestHigh + lowestLow) / 2
+				if i >= 77 {
+					senkouA = (result[i-51].Tenkan + result[i-51].Kijun)/2
+				}
+			}
+		}
+		result = append(result, IchimokuCloud{Tenkan: tenkan, Kijun:kijun, Chikou:chikou, SenkouA:senkouA})
+	}
+	return result
+}
+
+func findMax(items []bittrex.Candle) float64 {
+	max := items[0].High
+	for _, item := range items {
+		max = math.Max(max, item.High)
+	}
+	return max
+}
+
+func findMin(items []bittrex.Candle) float64 {
+	min := items[0].Low
+	for _, item := range items {
+		min = math.Min(min, item.Low)
+	}
+	return min
+}

@@ -24,3 +24,7 @@ type TDIPoint struct {
 	FastMA   float64
 	SlowMA float64
 }
+
+type IchimokuCloud struct {
+	Tenkan, Kijun, Chikou, SenkouA, SenkouB float64
+}
