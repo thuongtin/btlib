@@ -4,6 +4,7 @@ import (
 	"github.com/toorop/go-bittrex"
 	"math"
 	"github.com/murlokswarm/errors"
+	"time"
 )
 
 type Btlib struct {
@@ -15,7 +16,48 @@ func (this Btlib) NewClient() *Btlib {
 	return &Btlib{bt}
 }
 
-func (this Btlib) HeikinAshi(candles []bittrex.Candle) ([]bittrex.Candle, error) {
+func (this *Btlib) FifteenCandles(candles []bittrex.Candle) []bittrex.Candle {
+	result := []bittrex.Candle{}
+	for i, candle := range candles {
+		if candle.TimeStamp.Minute() == 0 || candle.TimeStamp.Minute() == 15 || candle.TimeStamp.Minute() == 30 || candle.TimeStamp.Minute() == 45 {
+			candles = candles[i:]
+			break
+		}
+	}
+	var c bittrex.Candle
+	var h, l, bv float64
+	j := 1
+	len := len(candles)-1
+	for x, candle := range candles {
+		if j == 1 {
+			c = bittrex.Candle{}
+			c.Open = candle.Open
+			h = c.High
+			l = c.Low
+			bv = c.BaseVolume
+		} else if j == 3 || x == len {
+			c.Close = candle.Close
+			c.High = math.Max(h, c.High)
+			c.Low = math.Min(l, c.Low)
+			c.TimeStamp = candle.TimeStamp
+			c.Volume = candle.Volume
+			bv += candle.BaseVolume
+			c.BaseVolume = bv
+			c.Volume = candle.Volume
+			result = append(result, c)
+			j=1
+			continue
+		} else {
+			h = math.Max(h, c.High)
+			l = math.Min(l, c.Low)
+			bv += c.BaseVolume
+		}
+		j++
+	}
+	return result
+}
+
+func (this *Btlib) HeikinAshi(candles []bittrex.Candle) ([]bittrex.Candle, error) {
 	if len(candles) == 0 {
 		return nil, nil
 	}
@@ -456,4 +498,20 @@ func findMin(items []bittrex.Candle) float64 {
 		min = math.Min(min, item.Low)
 	}
 	return min
+}
+
+func ConvertBittrexTime(str string) time.Time {
+	layout := "2006-01-02T15:04:05.000"
+	if len(str) == 22 {
+		layout = "2006-01-02T15:04:05.00"
+	} else if len(str) == 21 {
+		layout = "2006-01-02T15:04:05.0"
+	} else if len(str) == 19 {
+		layout = "2006-01-02T15:04:05"
+	}
+	t, err:= time.Parse(layout, str)
+	if err != nil {
+		panic(err)
+	}
+	return t
 }

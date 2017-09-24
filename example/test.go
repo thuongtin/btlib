@@ -10,16 +10,21 @@ import (
 //
 func main() {
 
-
-	pair := "BTC-MUE"
+	pair := "BTC-NEO"
 	bt := btlib.Btlib{}.NewClient()
-	candles, err := bt.GetCandles(pair, "hour")
+	candles, err := bt.GetCandles(pair, "fiveMin")
 		if err != nil {
 			fmt.Printf("%s - Get Candle\n", pair)
 		} else {
-			x,_ := bt.Macd(candles, 8, 26, 9)
-			for _, item := range x {
-				fmt.Printf("%.8f\n", item.Histogram)
+			//x,_ := bt.Macd(candles, 8, 26, 9)
+			//len := len(x)
+			//if x[len-1].Histogram > 0 && x[len-2].Macd <= 0 && x[len-1].Macd > 0 {
+			//	fmt.Printf("%s\n", pair)
+			//}
+
+			fCandles := bt.FifteenCandles(candles)
+			for _, candle := range fCandles {
+				fmt.Printf("%#v\n", candle)
 			}
 		}
 }
@@ -30,22 +35,16 @@ func main() {
 //func main()  {
 //	bt := btlib.Btlib{}.NewClient()
 //	for _, pair := range pairs {
-//		candles, err := bt.GetCandles(pair, "hour")
-//
-//		if err != nil {
-//			fmt.Printf("%s - Get Candle\n", pair)
-//		} else {
-//			haCancles, _ := bt.HeikinAshi(candles)
-//			vols, _ := bt.Vol(haCancles, 20)
-//			if haCancles[len(haCancles)-1].BaseVolume > vols[len(vols)-1] {
-//				if haCancles[len(haCancles)-1].Close > haCancles[len(haCancles)-1].Open {
-//					fmt.Printf("%s - Buy Vol\n", pair)
-//				} else {
-//					//fmt.Printf("%s - Sell Vol\n", pair)
+//		candles, err := bt.GetCandles(pair, "thirtyMin")
+//			if err != nil {
+//				fmt.Printf("%s - Get Candle\n", pair)
+//			} else {
+//				x,_ := bt.Macd(candles, 8, 26, 9)
+//				len := len(x)
+//				if x[len-1].Histogram > 0 && x[len-2].Macd <= x[len-2].Signal && x[len-1].Macd > x[len-1].Signal && x[len-1].Macd > 0 {
+//					fmt.Printf("%s\n", pair)
 //				}
-//
 //			}
-//		}
 //
 //	}
 //}
