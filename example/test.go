@@ -11,16 +11,15 @@ import (
 func main() {
 
 
-	pair := "BTC-NEO"
+	pair := "BTC-MUE"
 	bt := btlib.Btlib{}.NewClient()
 	candles, err := bt.GetCandles(pair, "hour")
 		if err != nil {
 			fmt.Printf("%s - Get Candle\n", pair)
 		} else {
-			haCancles, _ := bt.HeikinAshi(candles)
-			ichi := bt.Ichimoku(haCancles)
-			for _, macd := range ichi {
-				fmt.Printf("%.8f\n", macd.SenkouA)
+			x,_ := bt.Macd(candles, 8, 26, 9)
+			for _, item := range x {
+				fmt.Printf("%.8f\n", item.Histogram)
 			}
 		}
 }

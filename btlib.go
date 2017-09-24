@@ -141,43 +141,43 @@ func (this *Btlib) Ema(candles []bittrex.Candle, length int) ([]float64, error) 
 }
 
 
-func (this *Btlib) emaOfMacd(macd []float64) []float64 {
+func (this *Btlib) emaOfMacd(macd []float64, fastLength int) []float64 {
 	result := []float64{}
 	a := 0.0
 	for i, b := range macd {
-		if i < 8 {
+		if i < fastLength-1 {
 			a += b
-		} else if i == 8 {
+		} else if i == fastLength - 1 {
 			a += b
-			result = append(result, a/9)
+			result = append(result, a/float64(fastLength))
 		} else {
-			r := (b*(2/10)) + result[i-9]*(1-2/10)
+			r := (b*(2/(float64(fastLength)+1))) + result[i-fastLength]*(1-2/(float64(fastLength)+1))
 			result = append(result, r)
 		}
 	}
 	return result
 }
 
-func (this *Btlib) Macd(candles []bittrex.Candle) ([]MACD, error) {
+func (this *Btlib) Macd(candles []bittrex.Candle, fastLength, slowLength, signalSmooth int) ([]MACD, error) {
 	result := []MACD{}
 	cLen := len(candles)
-	if cLen <= 26 {
+	if cLen <= slowLength {
 		return nil, errors.New("Out of range")
 	}
-	ema12, _ := this.Ema(candles, 12)
-	ema26, _ := this.Ema(candles, 26)
-	ema12 = ema12[14:]
+	emaF, _ := this.Ema(candles, fastLength)
+	emaS, _ := this.Ema(candles, slowLength)
+	emaF = emaF[slowLength-fastLength:]
 
 	macd := []float64{}
 
-	for i, _ := range ema26 {
-		v := ema12[i] - ema26[i]
+	for i, _ := range emaS {
+		v := emaF[i] - emaS[i]
 		//fmt.Println(v)
 		macd = append(macd, v)
 	}
 
-	signals := this.emaOfMacd(macd)
-	macd = macd[8:]
+	signals := this.emaOfMacd(macd, fastLength)
+	macd = macd[fastLength-1:]
 
 	for i, _ := range macd {
 		result = append(result, MACD{
