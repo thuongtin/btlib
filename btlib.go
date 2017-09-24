@@ -32,14 +32,14 @@ func (this *Btlib) FifteenCandles(candles []bittrex.Candle) []bittrex.Candle {
 		if j == 1 {
 			c = bittrex.Candle{}
 			c.Open = candle.Open
-			h = c.High
-			l = c.Low
-			bv = c.BaseVolume
+			c.TimeStamp = candle.TimeStamp
+			h = candle.High
+			l = candle.Low
+			bv = candle.BaseVolume
 		} else if j == 3 || x == len {
 			c.Close = candle.Close
-			c.High = math.Max(h, c.High)
-			c.Low = math.Min(l, c.Low)
-			c.TimeStamp = candle.TimeStamp
+			c.High = math.Max(h, candle.High)
+			c.Low = math.Min(l, candle.Low)
 			c.Volume = candle.Volume
 			bv += candle.BaseVolume
 			c.BaseVolume = bv
@@ -48,9 +48,9 @@ func (this *Btlib) FifteenCandles(candles []bittrex.Candle) []bittrex.Candle {
 			j=1
 			continue
 		} else {
-			h = math.Max(h, c.High)
-			l = math.Min(l, c.Low)
-			bv += c.BaseVolume
+			h = math.Max(h, candle.High)
+			l = math.Min(l, candle.Low)
+			bv += candle.BaseVolume
 		}
 		j++
 	}
