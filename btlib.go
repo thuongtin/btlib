@@ -16,7 +16,7 @@ func (this Btlib) NewClient() *Btlib {
 	return &Btlib{bt}
 }
 
-func (this *Btlib) FifteenCandles(candles []bittrex.Candle) []bittrex.Candle {
+func (this *Btlib) FifteenMinCandles(candles []bittrex.Candle) []bittrex.Candle {
 	result := []bittrex.Candle{}
 	for i, candle := range candles {
 		if candle.TimeStamp.Minute() == 0 || candle.TimeStamp.Minute() == 15 || candle.TimeStamp.Minute() == 30 || candle.TimeStamp.Minute() == 45 {
@@ -26,17 +26,21 @@ func (this *Btlib) FifteenCandles(candles []bittrex.Candle) []bittrex.Candle {
 	}
 	var c bittrex.Candle
 	var h, l, bv float64
-	j := 1
 	len := len(candles)-1
 	for x, candle := range candles {
-		if j == 1 {
+		y := x%3
+		if y==0 {
 			c = bittrex.Candle{}
 			c.Open = candle.Open
-			c.TimeStamp = candle.TimeStamp
 			h = candle.High
 			l = candle.Low
 			bv = candle.BaseVolume
-		} else if j == 3 || x == len {
+			c.TimeStamp = candle.TimeStamp
+		} else if y==1 {
+			h = math.Max(h, candle.High)
+			l = math.Min(l, candle.Low)
+			bv += candle.BaseVolume
+		} else if y==2 || x == len {
 			c.Close = candle.Close
 			c.High = math.Max(h, candle.High)
 			c.Low = math.Min(l, candle.Low)
@@ -45,14 +49,7 @@ func (this *Btlib) FifteenCandles(candles []bittrex.Candle) []bittrex.Candle {
 			c.BaseVolume = bv
 			c.Volume = candle.Volume
 			result = append(result, c)
-			j=1
-			continue
-		} else {
-			h = math.Max(h, candle.High)
-			l = math.Min(l, candle.Low)
-			bv += candle.BaseVolume
 		}
-		j++
 	}
 	return result
 }
